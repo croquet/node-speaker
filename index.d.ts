@@ -54,6 +54,13 @@ declare class Speaker extends Writable {
      * @return whether or not is playable
      */
     public isSupported(format: number): boolean;
+
+    /**
+     * Return speaker's current position in the stream.
+     *
+     * @return sample number
+     */
+    public tell(): number;
 }
 
 export = Speaker

@@ -290,6 +290,17 @@ class Speaker extends Writable {
     this._closed = true
     this.emit('close')
   }
+
+  tell () {
+    debug('tell()')
+    if (this._closed) return debug('already closed...')
+
+    if (this.audio_handle) {
+      binding.tell(this.audio_handle)
+    } else {
+      debug('not invoking tell() binding since no `audio_handle`')
+    }
+  }
 }
 
 /**

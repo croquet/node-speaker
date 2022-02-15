@@ -6,7 +6,7 @@
 	initially written by Michael Hipp
 */
 
-/* 
+/*
  * Audio 'LIB' defines
  */
 
@@ -40,7 +40,7 @@ typedef struct audio_output_struct
 {
 	int fn;			/* filenumber */
 	void *userptr;	/* driver specific pointer */
-	
+
 	/* Callbacks */
 	int (*open)(struct audio_output_struct *);
 	int (*get_formats)(struct audio_output_struct *);
@@ -48,10 +48,11 @@ typedef struct audio_output_struct
 	void (*flush)(struct audio_output_struct *);
 	int (*close)(struct audio_output_struct *);
 	int (*deinit)(struct audio_output_struct *);
-	
+	int (*tell)(struct audio_output_struct *);
+
 	/* the module this belongs to */
 	mpg123_module_t *module;
-	
+
 	char *device;	/* device name */
 	int   flags;	/* some bits; namely headphone/speaker/line */
 	long rate;		/* sample rate */
