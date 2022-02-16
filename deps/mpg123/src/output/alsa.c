@@ -294,7 +294,7 @@ static int tell_alsa(audio_output_t *ao)
 		}
 		snd_pcm_status_get_trigger_tstamp(status, &trigger_tstamp);
 		snd_pcm_status_get_tstamp(status, &now_tstamp);
-/*
+
 		// find the diff (code from https://github.com/tiwai/alsa-lib/blob/master/test/latency.c)
 		now_tstamp.tv_sec -= trigger_tstamp.tv_sec;
 		int micros = (int) now_tstamp.tv_usec - (int) trigger_tstamp.tv_usec;
@@ -305,9 +305,10 @@ static int tell_alsa(audio_output_t *ao)
 		}
 		int ms_since_trigger = (int)(now_tstamp.tv_sec) * 1000 + micros / 1000;
 		return ms_since_trigger;
-*/
+/*
 int ms = (int) (now_tstamp.tv_sec) * 1000 + (int) (now_tstamp.tv_usec) / 1000;
 return ms;
+*/
 		/*
 		snd_pcm_sframes_t sframes;
 		int status = snd_pcm_delay(pcm, &sframes);
