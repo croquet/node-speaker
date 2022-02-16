@@ -270,9 +270,12 @@ static int tell_alsa(audio_output_t *ao)
 	debug1("tell_alsa with %p", ao->userptr);
 	if(pcm != NULL) /* be really generous for being called without any device opening */
 	{
-		return 23456; //snd_pcm_close(pcm);
+		snd_pcm_sframes_t sframes;
+		int status = snd_pcm_delay(pcm, &sframes);
+		debug1("tell_alsa returned %d", (int) sframes);
+		return (int) sframes;
 	}
-	else return 0;
+	else return -1;
 }
 
 
