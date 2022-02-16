@@ -273,15 +273,26 @@ static int tell_alsa(audio_output_t *ao)
 		int err;
 		snd_pcm_status_t *status;
 		snd_pcm_status_alloca(&status);
-		snd_timestamp_t timestamp;
+		snd_timestamp_t trigger_tstamp;
+		snd_timestamp_t now_tstamp;
 
 		if ((err = snd_pcm_status(pcm, status)) < 0) {
 			printf("Stream status error: %s\n", snd_strerror(err));
 			return -1;
 		}
-		snd_pcm_status_get_trigger_tstamp(status, &timestamp);
-		int ms = (int) (timestamp.tv_sec) + (int) (timestamp.tv_usec) / 1000;
-		return ms;
+		snd_pcm_status_get_trigger_tstamp(status, &trigger_tstamp);
+		snd_pcm_status_get_tstamp(status, &now_tstamp);
+
+		// find the diff (code from https://github.com/tiwai/alsa-lib/blob/master/test/latency.c)
+		now_tstamp.tv_sec -= trigger_tstamp.tv_sec;
+		int micros = (int) now_tstamp.tv_usec - (int) trigger_tstamp.tv_usec;
+		if (micros < 0) {
+			now_tstamp.tv_sec--;
+			micros = 1000000 + micros;
+			micros %= 1000000;
+		}
+		int ms_since_trigger = (int)(now_tstamp.tv_sec) * 1000 + micros / 1000;
+		return ms_since_trigger;
 		/*
 		snd_pcm_sframes_t sframes;
 		int status = snd_pcm_delay(pcm, &sframes);
