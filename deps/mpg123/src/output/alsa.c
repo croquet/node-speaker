@@ -140,6 +140,18 @@ static int initialize_device(audio_output_t *ao)
 		return -1;
 	}
 #endif
+
+	if (snd_pcm_sw_params_set_tstamp_mode(pcm, sw, SND_PCM_TSTAMP_ENABLE) < 0) {
+		if(!AOQUIET) error("initialize_device(): cannot set timestamp mode");
+		return -1;
+	}
+
+	if (snd_pcm_sw_params_set_tstamp_type(pcm, sw, SND_PCM_TSTAMP_TYPE_MONOTONIC_RAW) < 0) {
+		if(!AOQUIET) error("initialize_device(): cannot set timestamp type");
+		return -1;
+	}
+
+
 	if (snd_pcm_sw_params(pcm, sw) < 0) {
 		if(!AOQUIET) error("initialize_device(): cannot set sw params");
 		return -1;
@@ -270,13 +282,6 @@ static int tell_alsa(audio_output_t *ao)
 	debug1("tell_alsa with %p", ao->userptr);
 	if(pcm != NULL) /* be really generous for being called without any device opening */
 	{
-
-snd_pcm_sw_params_t *swparams;
-snd_pcm_sw_params_alloca(&swparams);
-snd_pcm_sw_params_current(pcm, swparams);
-snd_pcm_sw_params_set_tstamp_mode(pcm, swparams, SND_PCM_TSTAMP_MMAP);
-snd_pcm_sw_params(pcm, swparams);
-
 		int err;
 		snd_pcm_status_t *status;
 		snd_pcm_status_alloca(&status);
@@ -301,7 +306,7 @@ snd_pcm_sw_params(pcm, swparams);
 		int ms_since_trigger = (int)(now_tstamp.tv_sec) * 1000 + micros / 1000;
 		return ms_since_trigger;
 */
-int ms = (int) (now_tstamp.tv_sec) + (int) (now_tstamp.tv_usec) / 1000;
+int ms = (int) (now_tstamp.tv_sec) * 1000 + (int) (now_tstamp.tv_usec) / 1000;
 return ms;
 		/*
 		snd_pcm_sframes_t sframes;
