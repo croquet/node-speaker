@@ -179,7 +179,7 @@ napi_value speaker_tell(napi_env env, napi_callback_info info) {
   assert(napi_unwrap(env, args[0], (void**) &speaker) == napi_ok);
   audio_output_t *ao = &speaker->ao;
 
-  int r = 12345; // ao->tell(ao);
+  int r = ao->tell(ao);
 
   napi_value position;
   assert(napi_create_int32(env, r, &position) == napi_ok);

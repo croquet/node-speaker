@@ -264,6 +264,17 @@ static int close_alsa(audio_output_t *ao)
 	else return 0;
 }
 
+static int tell_alsa(audio_output_t *ao)
+{
+	snd_pcm_t *pcm=(snd_pcm_t*)ao->userptr;
+	debug1("tell_alsa with %p", ao->userptr);
+	if(pcm != NULL) /* be really generous for being called without any device opening */
+	{
+		return 23456; //snd_pcm_close(pcm);
+	}
+	else return 0;
+}
+
 
 static int init_alsa(audio_output_t* ao)
 {
@@ -275,6 +286,7 @@ static int init_alsa(audio_output_t* ao)
 	ao->write = write_alsa;
 	ao->get_formats = get_formats_alsa;
 	ao->close = close_alsa;
+	ao->tell = tell_alsa;
 
 	/* Success */
 	return 0;
@@ -282,16 +294,16 @@ static int init_alsa(audio_output_t* ao)
 
 
 
-/* 
+/*
 	Module information data structure
 */
 mpg123_module_t mpg123_output_module_info = {
 	/* api_version */	MPG123_MODULE_API_VERSION,
-	/* name */			"alsa",						
+	/* name */			"alsa",
 	/* description */	"Output audio using Advanced Linux Sound Architecture (ALSA).",
-	/* revision */		"$Rev:$",						
+	/* revision */		"$Rev:$",
 	/* handle */		NULL,
-	
-	/* init_output */	init_alsa,						
+
+	/* init_output */	init_alsa,
 };
 

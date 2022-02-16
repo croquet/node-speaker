@@ -295,9 +295,10 @@ class Speaker extends Writable {
     debug('tell()')
     if (this._closed) return debug('already closed...')
 
+    let position = null;
     if (this.audio_handle) {
       debug('found audio_handle');
-      const position = binding.tell(this.audio_handle);
+      position = binding.tell(this.audio_handle);
       debug(`position=${position}`);
     } else {
       debug('not invoking tell() binding since no `audio_handle`')

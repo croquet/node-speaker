@@ -167,7 +167,7 @@ audio_output_t* open_output_module( const char* names )
 			free(ao);
 			ao = NULL;
 		}
-		else 
+		else
 		{ /* All good, leave the loop. */
 			if(param.verbose > 1) fprintf(stderr, "Output module '%s' chosen.\n", name);
 
@@ -185,17 +185,17 @@ audio_output_t* open_output_module( const char* names )
 
 
 /* Close the audio output and close the module */
-void close_output_module( audio_output_t* ao ) 
+void close_output_module( audio_output_t* ao )
 {
 	if (!ao) return; /* That covers buffer mode, too (ao == NULL there). */
-	
+
 	debug("closing output module");
 	/* Close the audio output */
 	if(ao->is_open && ao->close != NULL) ao->close(ao);
 
 	/* Deinitialise the audio output */
 	if (ao->deinit) ao->deinit( ao );
-	
+
 	/* Unload the module */
 	if (ao->module) close_module( ao->module );
 
@@ -231,7 +231,8 @@ audio_output_t* alloc_audio_output()
 	ao->flush = NULL;
 	ao->close = NULL;
 	ao->deinit = NULL;
-	
+	ao->tell = NULL;
+
 	return ao;
 }
 
@@ -400,7 +401,7 @@ void audio_capabilities(audio_output_t *ao, mpg123_handle *mh)
 #ifndef NOXFERMEM
 		if(param.usebuffer)
 		{ /* Ask the buffer process. It is waiting for this. */
-			buffermem->rate     = rate; 
+			buffermem->rate     = rate;
 			buffermem->channels = channels;
 			buffermem->format   = 0; /* Just have it initialized safely. */
 			debug2("asking for formats for %liHz/%ich", rate, channels);
@@ -455,10 +456,10 @@ static void catch_child(void)
 int init_output(audio_output_t **ao)
 {
 	static int init_done = FALSE;
-	
+
 	if (init_done) return 1;
 	init_done = TRUE;
-  
+
 #ifndef NOXFERMEM
 	if (param.usebuffer)
 	{
