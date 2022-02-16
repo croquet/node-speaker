@@ -270,10 +270,23 @@ static int tell_alsa(audio_output_t *ao)
 	debug1("tell_alsa with %p", ao->userptr);
 	if(pcm != NULL) /* be really generous for being called without any device opening */
 	{
+		int err;
+		snd_pcm_status_t *status;
+		snd_pcm_status_alloca(&status);
+		snd_timestamp_t timestamp;
+
+		if ((err = snd_pcm_status(pcm, status)) < 0) {
+			printf("Stream status error: %s\n", snd_strerror(err));
+			return -1;
+		}
+		snd_pcm_status_get_trigger_tstamp(status, &timestamp);
+		return (int) timestamp;
+		/*
 		snd_pcm_sframes_t sframes;
 		int status = snd_pcm_delay(pcm, &sframes);
 		debug1("tell_alsa returned %d", (int) sframes);
 		return (int) sframes;
+		*/
 	}
 	else return -1;
 }
