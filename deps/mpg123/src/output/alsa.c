@@ -275,6 +275,7 @@ snd_pcm_sw_params_t *swparams;
 snd_pcm_sw_params_alloca(&swparams);
 snd_pcm_sw_params_current(pcm, swparams);
 snd_pcm_sw_params_set_tstamp_mode(pcm, swparams, SND_PCM_TSTAMP_MMAP);
+snd_pcm_sw_params(pcm, swparams);
 
 		int err;
 		snd_pcm_status_t *status;
