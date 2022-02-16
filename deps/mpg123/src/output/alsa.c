@@ -280,7 +280,7 @@ static int tell_alsa(audio_output_t *ao)
 			return -1;
 		}
 		snd_pcm_status_get_trigger_tstamp(status, &timestamp);
-		return (int) timestamp;
+		return (int) (timestamp.tv_sec);
 		/*
 		snd_pcm_sframes_t sframes;
 		int status = snd_pcm_delay(pcm, &sframes);
