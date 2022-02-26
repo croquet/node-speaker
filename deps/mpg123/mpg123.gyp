@@ -190,6 +190,7 @@
           'link_settings': {
             'libraries': [
               '-lasound',
+              # '-ldmalloc'
             ]
           }
         }],

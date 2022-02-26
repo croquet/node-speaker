@@ -27,7 +27,12 @@ class Speaker extends Writable {
     if (opts.lowWaterMark == null) opts.lowWaterMark = 0
     if (opts.highWaterMark == null) opts.highWaterMark = 0
 
+    const { croquetStayOpen } = opts;
+    if (croquetStayOpen) delete opts.croquetStayOpen
+
     super(opts)
+
+    this._croquetStayOpen = croquetStayOpen
 
     // chunks are sent over to the backend in "samplesPerFrame * blockAlign" size.
     // this is necessary because if we send too big of chunks at once, then there
@@ -40,13 +45,14 @@ class Speaker extends Writable {
 
     // flipped after close() is called, no write() calls allowed after
     this._closed = false
+    this._audio_paused = false // croquet - also blocks write()
 
     // set PCM format
     this._format(opts)
 
     // bind event listeners
     this._format = this._format.bind(this)
-    this.on('finish', this._flush)
+    this.on('finish', this._finished)
     this.on('pipe', this._pipe)
     this.on('unpipe', this._unpipe)
   }
@@ -58,7 +64,7 @@ class Speaker extends Writable {
    */
 
   _open () {
-    debug('open()')
+    debug('%s open()', this._label)
     if (this.audio_handle) {
       throw new Error('_open() called more than once!')
     }
@@ -115,7 +121,7 @@ class Speaker extends Writable {
    */
 
   _format (opts) {
-    debug('format(object keys = %o)', Object.keys(opts))
+    debug('%s format(object keys = %o)', this._label, Object.keys(opts))
     if (opts.channels != null) {
       debug('setting %o: %o', 'channels', opts.channels)
       this.channels = opts.channels
@@ -163,11 +169,11 @@ class Speaker extends Writable {
    */
 
   _write (chunk, encoding, done) {
-    debug('_write() (%o bytes)', chunk.length)
+    debug('%s _write() (%o bytes)', this._label, chunk.length)
 
-    if (this._closed) {
-      // close() has already been called. this should not be called
-      return done(new Error('write() call after close() call'))
+    if (this._closed || this._audio_paused) {
+      debug('%s is closed or paused; ignoring write', this._label);
+      return done();
     }
     let b
     let left = chunk
@@ -183,8 +189,8 @@ class Speaker extends Writable {
     const chunkSize = this.blockAlign * this.samplesPerFrame
 
     const write = () => {
-      if (this._closed) {
-        debug('aborting remainder of write() call (%o bytes), since speaker is `_closed`', left.length)
+      if (this._closed || this._audio_paused) {
+        debug('%s is closed or paused; aborting remainder of write() call (%o bytes)', this._label, left.length)
         return done()
       }
       b = left
@@ -195,7 +201,7 @@ class Speaker extends Writable {
       } else {
         left = null
       }
-      debug('writing %o byte chunk', b.length)
+      // debug('writing %o byte chunk', b.length)
       binding.write(handle, b).then(onwrite, onerror)
     }
 
@@ -204,14 +210,16 @@ class Speaker extends Writable {
     }
 
     const onwrite = (r) => {
-      debug('wrote %o bytes', r)
+      if (this._closed || this._audio_paused) return done(); // closed while we were writing
+
+      // debug('wrote %o bytes', r)
       if (r !== b.length) {
         done(new Error(`write() failed: ${r}`))
       } else if (left) {
-        debug('still %o bytes left in this chunk', left.length)
+        // debug('still %o bytes left in this chunk', left.length)
         write()
       } else {
-        debug('done with this chunk')
+        // debug('done with this chunk')
         done()
       }
     }
@@ -228,7 +236,7 @@ class Speaker extends Writable {
    */
 
   _pipe (source) {
-    debug('_pipe()')
+    debug('%s _pipe()', this._label)
     this._format(source)
     source.once('format', this._format)
   }
@@ -242,21 +250,53 @@ class Speaker extends Writable {
    */
 
   _unpipe (source) {
-    debug('_unpipe()')
+    debug('%s _unpipe()', this._label)
     source.removeListener('format', this._format)
   }
 
   /**
+   * croquet: this is set up to be called when the underlying writestream emits a 'finish' event.  it was called _flush, but that's confusing in the Node.js stream world.
+   *
    * Emits a "flush" event and then calls the `.close()` function on
-   * this Speaker instance.
+   * this Speaker instance unless croquetStayOpen was specified on speaker creation.
    *
    * @api private
    */
 
-  _flush () {
-    debug('_flush()')
+  _finished () {
+    debug('%s _finished()', this._label)
     this.emit('flush')
-    this.close(false)
+    if (!this._croquetStayOpen) this.close(false); // close gracefully, without native flush
+  }
+
+  /**
+   * croquet: Pauses the stream, suspending any further writes and invoking the native flush to throw away any data already on the way to the speaker.
+   *
+   * @api public
+   */
+
+  pauseAudio() {
+    debug('%s pauseAudio()', this._label)
+    this._audio_paused = true
+    // flushing immediately could put the speaker into an odd state if we were in the middle of a write (maybe an overrun?)... but it seems to recover.
+    // setTimeout(() => {
+    if (this.audio_handle) {
+      debug('%s invoking flush() native binding', this._label)
+      binding.flush(this.audio_handle)
+      this.emit('flush')
+    }
+    // }, 100); // safer?
+  }
+
+  /**
+  * croquet: Resume from a pause
+  *
+  * @api public
+  */
+
+  resumeAudio() {
+    debug('%s resumeAudio()', this._label)
+    this._audio_paused = false
   }
 
   /**
@@ -269,8 +309,9 @@ class Speaker extends Writable {
    */
 
   close (flush) {
-    debug('close(%o)', flush)
+    debug('%s close(%o)', this._label, flush)
     if (this._closed) return debug('already closed...')
+    this._closed = true // make sure we don't re-enter if flush happens synchronously
 
     if (this.audio_handle) {
       if (flush !== false) {
@@ -287,25 +328,25 @@ class Speaker extends Writable {
       debug('not invoking flush() or close() bindings since no `audio_handle`')
     }
 
-    this._closed = true
-    this.emit('close')
+    // this.emit('close')
   }
 
-  tell () {
-    debug('tell()')
+  getMillisecondsSinceTrigger () {
+    // debug('%s getMSSinceTrigger()', this._label)
     if (this._closed) return debug('already closed...')
 
-    let position = null;
+    let ms = null;
     if (this.audio_handle) {
-      debug('found audio_handle');
-      position = binding.tell(this.audio_handle);
-      debug(`position=${position}`);
-    } else {
-      debug('not invoking tell() binding since no `audio_handle`')
+      ms = binding.getMillisecondsSinceTrigger(this.audio_handle)
     }
 
-    return position;
+    return ms;
   }
+
+  // dmallocShutdown() {
+  //   debug('dmallocShutdown()')
+  //   binding.dmallocShutdown()
+  // }
 }
 
 /**

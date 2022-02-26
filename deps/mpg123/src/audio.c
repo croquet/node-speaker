@@ -231,7 +231,7 @@ audio_output_t* alloc_audio_output()
 	ao->flush = NULL;
 	ao->close = NULL;
 	ao->deinit = NULL;
-	ao->tell = NULL;
+	ao->get_milliseconds_since_trigger = NULL;
 
 	return ao;
 }

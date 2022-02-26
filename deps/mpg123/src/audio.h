@@ -48,7 +48,7 @@ typedef struct audio_output_struct
 	void (*flush)(struct audio_output_struct *);
 	int (*close)(struct audio_output_struct *);
 	int (*deinit)(struct audio_output_struct *);
-	int (*tell)(struct audio_output_struct *);
+	int (*get_milliseconds_since_trigger)(struct audio_output_struct *);
 
 	/* the module this belongs to */
 	mpg123_module_t *module;

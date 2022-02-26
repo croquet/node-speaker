@@ -56,11 +56,11 @@ declare class Speaker extends Writable {
     public isSupported(format: number): boolean;
 
     /**
-     * Return speaker's current position in the stream.
+     * Return milliseconds since a state change.
      *
-     * @return sample number
+     * @return milliseconds
      */
-    public tell(): number;
+    public getMillisecondsSinceTrigger(): number;
 }
 
 export = Speaker

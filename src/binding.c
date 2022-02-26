@@ -6,6 +6,8 @@
 #define NAPI_VERSION 1
 #include <node_api.h>
 
+// #include <dmalloc.h>
+
 #include "output.h"
 
 extern mpg123_module_t mpg123_output_module_info;
@@ -170,7 +172,19 @@ cleanup:
   return NULL;
 }
 
-napi_value speaker_tell(napi_env env, napi_callback_info info) {
+// napi_value do_dmalloc_shutdown(napi_env env, napi_callback_info info) {
+//   printf("shutdown\n");
+//   dmalloc_shutdown();
+//   printf("shutdown done\n");
+
+//   // dunno how to do a void function yet
+//   napi_value dummy;
+//   assert(napi_create_int32(env, 0, &dummy) == napi_ok);
+
+//   return dummy;
+// }
+
+napi_value speaker_get_milliseconds_since_trigger(napi_env env, napi_callback_info info) {
   size_t argc = 1;
   napi_value args[1];
   assert(napi_get_cb_info(env, info, &argc, args, NULL, NULL) == napi_ok);
@@ -179,12 +193,12 @@ napi_value speaker_tell(napi_env env, napi_callback_info info) {
   assert(napi_unwrap(env, args[0], (void**) &speaker) == napi_ok);
   audio_output_t *ao = &speaker->ao;
 
-  int r = ao->tell(ao);
+  int r = ao->get_milliseconds_since_trigger(ao);
 
-  napi_value position;
-  assert(napi_create_int32(env, r, &position) == napi_ok);
+  napi_value milliseconds;
+  assert(napi_create_int32(env, r, &milliseconds) == napi_ok);
 
-  return position;
+  return milliseconds;
 }
 
 int get_formats() {
@@ -262,9 +276,13 @@ static napi_value Init(napi_env env, napi_value exports) {
   assert(napi_create_function(env, "close", NAPI_AUTO_LENGTH, speaker_close, NULL, &close_fn) == napi_ok);
   assert(napi_set_named_property(env, result, "close", close_fn) == napi_ok);
 
-  napi_value tell_fn;
-  assert(napi_create_function(env, "tell", NAPI_AUTO_LENGTH, speaker_tell, NULL, &tell_fn) == napi_ok);
-  assert(napi_set_named_property(env, result, "tell", tell_fn) == napi_ok);
+  napi_value get_milliseconds_since_trigger_fn;
+  assert(napi_create_function(env, "getMillisecondsSinceTrigger", NAPI_AUTO_LENGTH, speaker_get_milliseconds_since_trigger, NULL, &get_milliseconds_since_trigger_fn) == napi_ok);
+  assert(napi_set_named_property(env, result, "getMillisecondsSinceTrigger", get_milliseconds_since_trigger_fn) == napi_ok);
+
+  // napi_value dmalloc_shutdown_fn;
+  // assert(napi_create_function(env, "dmallocShutdown", NAPI_AUTO_LENGTH, do_dmalloc_shutdown, NULL, &dmalloc_shutdown_fn) == napi_ok);
+  // assert(napi_set_named_property(env, result, "dmallocShutdown", dmalloc_shutdown_fn) == napi_ok);
 
   return result;
 }

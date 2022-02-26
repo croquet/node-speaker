@@ -70,6 +70,7 @@ static int initialize_device(audio_output_t *ao)
 		if(!AOQUIET) error("initialize_device(): no configuration available");
 		return -1;
 	}
+
 	if (snd_pcm_hw_params_set_access(pcm, hw, SND_PCM_ACCESS_RW_INTERLEAVED) < 0) {
 		if(!AOQUIET) error("initialize_device(): device does not support interleaved access");
 		return -1;
@@ -168,7 +169,7 @@ static int open_alsa(audio_output_t *ao)
 {
 	const char *pcm_name;
 	snd_pcm_t *pcm=NULL;
-	debug1("open_alsa with %p", ao->userptr);
+	debug1("%p open_alsa", ao->userptr);
 
 	if(AOQUIET) snd_lib_error_set_handler(error_ignorer);
 
@@ -252,20 +253,21 @@ static int write_alsa(audio_output_t *ao, unsigned char *buf, int bytes)
 static void flush_alsa(audio_output_t *ao)
 {
 	snd_pcm_t *pcm=(snd_pcm_t*)ao->userptr;
-
-	/* is this the optimal solution? - we should figure out what we really whant from this function */
-
-debug("alsa drop");
-	snd_pcm_drop(pcm);
-debug("alsa prepare");
-	snd_pcm_prepare(pcm);
-debug("alsa flush done");
+	if(pcm != NULL)
+	{
+		// one answer in https://stackoverflow.com/questions/15826155/alsa-snd-pcm-drop-is-not-clearing-complete-buffer suggests prepare() *then* drop()
+		int r;
+		r = snd_pcm_drop(pcm);
+debug2("%p alsa drop = %d", ao->userptr, r);
+		r = snd_pcm_prepare(pcm);
+debug2("%p alsa prepare = %d", ao->userptr, r);
+	}
 }
 
 static int close_alsa(audio_output_t *ao)
 {
 	snd_pcm_t *pcm=(snd_pcm_t*)ao->userptr;
-	debug1("close_alsa with %p", ao->userptr);
+	debug1("%p close_alsa", ao->userptr);
 	if(pcm != NULL) /* be really generous for being called without any device opening */
 	{
 		if (snd_pcm_state(pcm) == SND_PCM_STATE_RUNNING)
@@ -276,11 +278,11 @@ static int close_alsa(audio_output_t *ao)
 	else return 0;
 }
 
-static int tell_alsa(audio_output_t *ao)
+static int get_milliseconds_since_trigger_alsa(audio_output_t *ao)
 {
 	snd_pcm_t *pcm=(snd_pcm_t*)ao->userptr;
-	debug1("tell_alsa with %p", ao->userptr);
-	if(pcm != NULL) /* be really generous for being called without any device opening */
+	debug1("%p get_milliseconds_since_trigger_alsa", ao->userptr);
+	if(pcm != NULL)
 	{
 		int err;
 		snd_pcm_status_t *status;
@@ -292,6 +294,8 @@ static int tell_alsa(audio_output_t *ao)
 			printf("Stream status error: %s\n", snd_strerror(err));
 			return -1;
 		}
+		snd_pcm_state_t state = snd_pcm_status_get_state(status);
+		debug2("%p alsa state = %d", ao->userptr, (int) state);
 		snd_pcm_status_get_trigger_tstamp(status, &trigger_tstamp);
 		snd_pcm_status_get_tstamp(status, &now_tstamp);
 
@@ -305,18 +309,9 @@ static int tell_alsa(audio_output_t *ao)
 		}
 		int ms_since_trigger = (int)(now_tstamp.tv_sec) * 1000 + micros / 1000;
 		return ms_since_trigger;
-/*
-int ms = (int) (now_tstamp.tv_sec) * 1000 + (int) (now_tstamp.tv_usec) / 1000;
-return ms;
-*/
-		/*
-		snd_pcm_sframes_t sframes;
-		int status = snd_pcm_delay(pcm, &sframes);
-		debug1("tell_alsa returned %d", (int) sframes);
-		return (int) sframes;
-		*/
 	}
-	else return -1;
+
+	return -1;
 }
 
 
@@ -330,7 +325,7 @@ static int init_alsa(audio_output_t* ao)
 	ao->write = write_alsa;
 	ao->get_formats = get_formats_alsa;
 	ao->close = close_alsa;
-	ao->tell = tell_alsa;
+	ao->get_milliseconds_since_trigger = get_milliseconds_since_trigger_alsa;
 
 	/* Success */
 	return 0;
