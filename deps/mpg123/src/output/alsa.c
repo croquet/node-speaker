@@ -278,7 +278,7 @@ static int close_alsa(audio_output_t *ao)
 	else return 0;
 }
 
-static int get_milliseconds_since_trigger_alsa(audio_output_t *ao)
+static long get_milliseconds_since_trigger_alsa(audio_output_t *ao)
 {
 	snd_pcm_t *pcm=(snd_pcm_t*)ao->userptr;
 	debug1("%p get_milliseconds_since_trigger_alsa", ao->userptr);
@@ -301,13 +301,13 @@ static int get_milliseconds_since_trigger_alsa(audio_output_t *ao)
 
 		// find the diff (code from https://github.com/tiwai/alsa-lib/blob/master/test/latency.c)
 		now_tstamp.tv_sec -= trigger_tstamp.tv_sec;
-		int micros = (int) now_tstamp.tv_usec - (int) trigger_tstamp.tv_usec;
+		long micros = (long) now_tstamp.tv_usec - (long) trigger_tstamp.tv_usec;
 		if (micros < 0) {
 			now_tstamp.tv_sec--;
 			micros = 1000000 + micros;
 			micros %= 1000000;
 		}
-		int ms_since_trigger = (int)(now_tstamp.tv_sec) * 1000 + micros / 1000;
+		long ms_since_trigger = (long)(now_tstamp.tv_sec) * 1000 + micros / 1000;
 		return ms_since_trigger;
 	}
 

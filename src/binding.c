@@ -193,10 +193,10 @@ napi_value speaker_get_milliseconds_since_trigger(napi_env env, napi_callback_in
   assert(napi_unwrap(env, args[0], (void**) &speaker) == napi_ok);
   audio_output_t *ao = &speaker->ao;
 
-  int r = ao->get_milliseconds_since_trigger(ao);
+  long r = ao->get_milliseconds_since_trigger(ao);
 
   napi_value milliseconds;
-  assert(napi_create_int32(env, r, &milliseconds) == napi_ok);
+  assert(napi_create_int64(env, r, &milliseconds) == napi_ok);
 
   return milliseconds;
 }
