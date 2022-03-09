@@ -21,7 +21,7 @@
 #include "debug.h"
 
 /* My laptop has probs playing low-sampled files with only 0.5s buffer... this should be a user setting -- ThOr */
-#define BUFFER_LENGTH 0.5	/* in seconds */
+#define BUFFER_LENGTH 0.2	/* in seconds (croquet: was 0.5 in the original package, but we want to make sure that changes in gain come through quickly) */
 
 static const struct {
 	snd_pcm_format_t alsa;
