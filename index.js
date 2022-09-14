@@ -52,6 +52,8 @@ class Speaker extends Writable {
 
     // bind event listeners
     this._format = this._format.bind(this)
+    // note from https://nodejs.org/api/events.html:
+    // "...when an ordinary listener function is called, the standard this keyword is intentionally set to reference the EventEmitter instance to which the listener is attached."
     this.on('finish', this._finished)
     this.on('pipe', this._pipe)
     this.on('unpipe', this._unpipe)
@@ -169,7 +171,7 @@ class Speaker extends Writable {
    */
 
   _write (chunk, encoding, done) {
-    debug('%s _write() (%o bytes)', this._label, chunk.length)
+    // debug('%s _write() (%o bytes)', this._label, chunk.length)
 
     if (this._closed || this._audio_paused) {
       debug('%s is closed or paused; ignoring write', this._label);
