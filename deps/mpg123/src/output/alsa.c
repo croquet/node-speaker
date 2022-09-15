@@ -308,7 +308,7 @@ static long get_milliseconds_since_trigger_alsa(audio_output_t *ao)
 			micros %= 1000000;
 		}
 		long ms_since_trigger = (long)(now_tstamp.tv_sec) * 1000 + micros / 1000;
-printf("ms_since_trigger: %ld\n", ms_since_trigger);
+// printf("ms_since_trigger: %ld\n", ms_since_trigger);
 		return ms_since_trigger;
 	}
 
